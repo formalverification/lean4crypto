@@ -96,6 +96,40 @@ def xorEquiv {n : ℕ} (m : Plaintext n) : Key n ≃ Ciphertext n where
     apply ext
     simp [encrypt, vec_xor, get_map₂, xor_aab_eq_b]
 
+
+-------------------------------------------------------------------------
+
+-- Demo 3: Bijection Property
+-- section BijectionDemo
+  -- open OTP
+
+  -- Show that for every ciphertext, there's a unique key
+  example {n : Nat} (m : Plaintext n) (c : Ciphertext n) :
+    ∃! k : Key n, encrypt m k = c := by
+    use vec_xor m c   -- what to use as existence witness
+    constructor
+    · -- Prove map₂ xor m (map₂ xor m c) = c by extensionality and xor properties
+      apply ext
+      intro i
+      simp [encrypt, vec_xor, get_map₂]
+    · -- Uniqueness
+      intro k hk
+      exact (key_uniqueness m k c).mp hk
+
+  -- Show that encryption with a fixed message is injective
+  example {n : Nat} (m : Plaintext n) (k₁ k₂ : Key n)
+    (h : encrypt m k₁ = encrypt m k₂) : k₁ = k₂ := by
+    -- Use the bijection property
+    have bij := xorEquiv m
+    -- Apply injectivity
+    apply bij.injective
+    -- Goal: bij k₁ = bij k₂
+    sorry -- exercise!
+
+-- end BijectionDemo
+---------------------------------------------------------------------------
+
+
 /-! ### 2.  Mapping a uniform PMF through a bijection stays uniform -------------/
 lemma map_uniformOfFintype_equiv
     {α β : Type*} [Fintype α] [Fintype β] [DecidableEq β] [Nonempty α] [Nonempty β]
@@ -143,6 +177,8 @@ lemma map_uniformOfFintype_equiv
   -- Step 5: Use the fact that equivalent finite types have the same cardinality
   congr 1
   rw [card_congr e]
+
+
 
 /-! ### LEMMA 1.  The ciphertext-given-message distribution is uniform ---------------/
 
@@ -193,6 +229,33 @@ lemma C_given_M_eq_inv_card_key_ennreal {n : ℕ} (m : Plaintext n) (c : Ciphert
   -- Use the NNReal version and convert
   rw [C_given_M_eq_inv_card_key m c]
   simp
+
+
+
+
+------------------------------------------------------------------------
+
+-- Demo 4: Probability Calculations
+-- section ProbabilityDemo
+  -- The probability of any specific 3-bit key is 1/8
+  example : (μK (n := 3)) ⟨[true, false, true], by decide⟩ = 1/8 := by
+    simp [μK, uniformOfFintype_apply]
+    sorry -- exercise! (use card_congr or card_vector)
+   -- Lean knows that card (Key 3) = 2^3 = 8
+
+  -- The conditional probability P(C = c | M = m) is also 1/8
+  example (m : Plaintext 3) (c : Ciphertext 3) :
+    (μC_M m) c = 1/8 := by
+    rw [C_given_M_eq_inv_card_key]
+    sorry -- exercise! (use card_congr or card_vector)
+
+-- end ProbabilityDemo
+--------------------------------------------------------------------
+
+
+
+
+
 
 
 /-! ### LEMMA 2: The overall ciphertext distribution `μC` is also uniform.-----------
