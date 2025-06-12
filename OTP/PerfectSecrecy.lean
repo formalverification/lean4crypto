@@ -13,71 +13,74 @@ open PMF -- To use uniformOfFintype without PMF. prefix
 open List.Vector
 open Fintype -- Add this to bring card into scope
 
+-- Recall the definitions from OTP.Basic
 -- def Plaintext  (n : Nat) := List.Vector Bool n
 -- def Key        (n : Nat) := List.Vector Bool n
 -- def Ciphertext (n : Nat) := List.Vector Bool n
 -- def vec_xor {n : Nat} (v₁ v₂ : List.Vector Bool n) := map₂ xor v₁ v₂
 -- def encrypt {n : Nat} (m : Plaintext n) (k : Key n) : Ciphertext n := vec_xor m k
 
-section BasicOTP
-
 ----------------------------------------------------------------
 -- Demo 1: Basic OTP Operations
-  -- Create a 4-bit message
-  def msg : Plaintext 4 := ⟨[true, false, true, true], by decide⟩
-  def key : Key 4 := ⟨[false, true, false, true], by decide⟩
+section Demo1
+  -- Create 4-bit message and key
+  def msg : Plaintext 4 := ⟨[true, false, true, true], rfl⟩
+  def key : Key 4 := ⟨[false, true, false, true], rfl⟩
 
   -- Show encryption
-  #eval encrypt msg key
-  -- Output: [true, true, true, false]
+  #eval encrypt msg key                -- Output: [true, true, true, false]
 
   -- Show decryption recovers the message
-  #eval decrypt (encrypt msg key) key
-  -- Output: [true, false, true, true]
+  #eval decrypt (encrypt msg key) key  -- Output: [true, false, true, true]
 
   -- Show that different keys give different ciphertexts
   def key2 : Key 4 := ⟨[true, true, false, false], by decide⟩
-  #eval encrypt msg key2
-  -- Output: [false, true, true, true]
 
-
+  #eval encrypt msg key2               -- Output: [false, true, true, true]
+end Demo1
 
 ----------------------------------------------------------------
 -- Demo 2: xor properties
 -- Some useful lemmas about Boolean xor
 
+section Demo2
   open Bool
   -- Interactive proof that xor is self-inverse
   example (a b : Bool) : xor (xor a b) b = a := by
     -- Let's explore the proof interactively
-    rw [xor_assoc]
-    -- Goal: xor a (xor b b) = a
-    rw [Bool.xor_self]
-    -- Goal: xor a false = a
-    rw [Bool.xor_false]
-    -- Done!
+    rw [xor_assoc]      -- New Goal: xor a (xor b b) = a
+    rw [Bool.xor_self]  -- New Goal: xor a false = a
+    rw [Bool.xor_false] -- Done!
 
   -- Another way using simp
   example (a b : Bool) : xor (xor a b) b = a := by simp
-
-end BasicOTP
+end Demo2
 
 -------------------------------------------------------------------------
 -- Demo 3: Bijection Property
-
-section BijectionDemo
+/- First recall the `key_uniqueness` theorem we proved in OTP.Basic:
+   `theorem key_uniqueness {n : Nat} (m : Plaintext n) (k : Key n)
+     (c : Ciphertext n) : encrypt m k = c ↔ k = vec_xor m c`
+-/
+section Demo3
   -- For every ciphertext, there's a unique key.
   example {n : Nat} (m : Plaintext n) (c : Ciphertext n) :
     ∃! k : Key n, encrypt m k = c := by
-    use vec_xor m c   -- what to use as existence witness
+    use vec_xor m c -- what we will use as our witness to existence
     constructor
-    · -- Prove map₂ xor m (map₂ xor m c) = c by extensionality and xor properties
-      apply ext
+    -- Existence: show encrypt m (vec_xor m c) = c
+    · apply ext
       intro i
-      simp [encrypt, vec_xor, get_map₂]
-    · -- Uniqueness
-      intro k hk
-      exact (key_uniqueness m k c).mp hk
+      unfold encrypt vec_xor
+      repeat rw [get_map₂]
+      simp
+    · -- Uniqueness: show if encrypt m y = c, then y = vec_xor m c
+      intro y hy
+      -- key_uniqueness: vec_xor m y = c ↔ y = vec_xor m c
+      apply (key_uniqueness m y c).mp hy
+      -- mp is the "modus ponens" (forward direction) of the equivalence ↔
+      -- mpr is the "reverse modus ponens" (backward direction) of the ↔
+      -- so we could have written: `apply (key_uniqueness m y c).symm.mpr hy`
 
   -- Encryption with a fixed message is injective
   example {n : Nat} (m : Plaintext n) (k₁ k₂ : Key n)
@@ -91,11 +94,7 @@ section BijectionDemo
       rw [(key_uniqueness m k₂ (vec_xor m k₂)).symm]
     rw [h₁, h₂, h]
 
-/-  Recall:
-    theorem key_uniqueness {n : Nat} (m : Plaintext n) (k : Key n) (c : Ciphertext n) :
-      vec_xor m k = c ↔ k = vec_xor m c  -/
-
-end BijectionDemo
+end Demo3
 ---------------------------------------------------------------------------
 
 
