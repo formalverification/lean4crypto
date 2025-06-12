@@ -2,7 +2,6 @@ import Mathlib.Data.Vector.Basic
 
 namespace OTP
   open List.Vector
-  open Bool
   -- Define types using List.Vector
   def Plaintext  (n : Nat) := List.Vector Bool n
   def Key        (n : Nat) := List.Vector Bool n
@@ -20,9 +19,9 @@ namespace OTP
 
 -- Demo 1: Basic OTP Operations ----------------------------------
 -- Examples using List literals for the List.Vector constructor
-
+section Demo1
   -- Create a 4-bit message
-  def demo_msg : Plaintext 4 := ⟨[true, false, true, true], by decide⟩
+  def demo_msg : Plaintext 4 := ⟨[true, false, true, true], rfl⟩
   def demo_key : Key 4 := ⟨[false, true, false, true], by decide⟩
 
   -- Show encryption
@@ -37,12 +36,12 @@ namespace OTP
   def demo_key2 : Key 4 := ⟨[true, true, false, false], by decide⟩
   #eval encrypt demo_msg demo_key2
   -- Output: [false, true, true, true]
-
+end Demo1
 -----------------------------------------------------------------
 
 -- Formalization of OTP properties
 
-  lemma encrypt_decrypt {n : Nat} (m : Plaintext n) (k : Key n) :
+  lemma decrypt_encrypt {n : Nat} (m : Plaintext n) (k : Key n) :
     decrypt (encrypt m k) k = m := by
     -- Step 1: unfold definitions
     unfold encrypt decrypt vec_xor
@@ -61,11 +60,20 @@ namespace OTP
     simp -- This is exactly `(m i xor k i) xor k i = m i`
          -- `simp` recognizes this and proves equality.
 
+  lemma encrypt_decrypt {n : Nat} (c : Ciphertext n) (k : Key n) :
+    encrypt (decrypt c k) k = c := by
+    unfold encrypt decrypt vec_xor
+    apply ext -- changes goal from vector equality to element-wise equality.
+    intro i   -- new goal: ∀ (i : Fin n), ((m xor k) xor k) i = m i
+    simp only [get_map₂]
+    simp
+
 ----------------------------------------------------------------
 -- Demo 2: XOR Properties
 -- Some useful lemmas about Boolean xor
 
   -- Interactive proof that XOR is self-inverse
+  open Bool
   example (a b : Bool) : xor (xor a b) b = a := by
     -- Let's explore the proof interactively
     rw [xor_assoc]
