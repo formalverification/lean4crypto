@@ -91,9 +91,7 @@ def xorEquiv {n : ℕ} (m : Plaintext n) : Key n ≃ Ciphertext n where
 -------------------------------------------------------------------------
 
 -- Demo 3: Bijection Property
--- section BijectionDemo
-  -- open OTP
-
+section BijectionDemo
   -- Show that for every ciphertext, there's a unique key
   example {n : Nat} (m : Plaintext n) (c : Ciphertext n) :
     ∃! k : Key n, encrypt m k = c := by
@@ -122,9 +120,7 @@ def xorEquiv {n : ℕ} (m : Plaintext n) : Key n ≃ Ciphertext n where
 /-  Recall:
     theorem key_uniqueness {n : Nat} (m : Plaintext n) (k : Key n) (c : Ciphertext n) :
       vec_xor m k = c ↔ k = vec_xor m c  -/
-
-
--- end BijectionDemo
+end BijectionDemo
 ---------------------------------------------------------------------------
 
 
@@ -238,15 +234,21 @@ lemma C_given_M_eq_inv_card_key_ennreal {n : ℕ} (m : Plaintext n) (c : Ciphert
   -- The probability of any specific 3-bit key is 1/8
   example : (μK (n := 3)) ⟨[true, false, true], by decide⟩ = 1/8 := by
     simp [μK, uniformOfFintype_apply]
-    sorry -- exercise! (use card_congr or card_vector)
-   -- Lean knows that card (Key 3) = 2^3 = 8
+    -- New Goal: ↑(card (Key 3)) = 8
+    unfold Key
+    rw [card_vector]
+    -- New Goal: ↑(card Bool ^ 3) = 8
+    simp
 
   -- The conditional probability P(C = c | M = m) is also 1/8
   example (m : Plaintext 3) (c : Ciphertext 3) :
     (μC_M m) c = 1/8 := by
     rw [C_given_M_eq_inv_card_key]
-    sorry -- exercise! (use card_congr or card_vector)
-
+    -- New Goal: 1 / ↑(card (Key 3)) = 1 / 8
+    unfold Key
+    rw [card_vector]
+    -- New Goal: 1 / ↑(card Bool ^ 3) = 1 / 8
+    simp
 -- end ProbabilityDemo
 --------------------------------------------------------------------
 
