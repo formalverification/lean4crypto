@@ -68,6 +68,18 @@ end Demo1
     simp only [get_map₂]
     simp
 
+  lemma encrypt_m_involutive {n : Nat} (m : Plaintext n) (k : Key n) :
+    encrypt m (encrypt m k) = k := by
+    unfold encrypt vec_xor
+    apply ext -- changes goal from vector equality to element-wise equality.
+    intro i   -- new goal: ∀ (i : Fin n), ((m xor
+    -- k) xor (m xor k)) i = k i
+    simp only [get_map₂]
+    -- New Goal: `xor (get m i) (xor (get m i) (get k i)) = get k i`
+    -- This is exactly `xor (get m i) (get k i) = get k i`
+    -- which holds by the definition of `vec_xor`.
+    simp
+
 ----------------------------------------------------------------
 -- Demo 2: XOR Properties
 -- Some useful lemmas about Boolean xor

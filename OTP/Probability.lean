@@ -369,16 +369,18 @@ theorem marginal_probability_direct {n : Nat} (μM : PMF (Plaintext n)) (c : Cip
 -- - y is c
 -- And (pure a) b = if b = a then 1 else 0
 
--- For your talk, you can just say:
--- "By definition, P(C = c) equals the sum of P(M = m, K = k) over all (m,k)
---  such that encrypt m k = c. This is exactly what μC computes."
+-- Interpretation:
+--   By definition, P(C = c) equals the sum of P(M = m, K = k) over all (m,k)
+--   such that encrypt m k = c. This is exactly what μC computes."
 
 /-- The law of total probability for PMFs:
     P(Y = y) = Σ_x P(X = x) * P(Y = y | X = x) -/
+-- First, we need the Law of Total Probability for our construction.
 theorem law_of_total_probability {n : Nat} (μM : PMF (Plaintext n)) (c : Ciphertext n) :
-  (μC μM) c = ∑' (m : Plaintext n), (μM m : ENNReal) * (μC_M m c) := by
-  sorry -- Standard probability theory result
-        -- Proof involves rearranging the double sum in the definition of μC
+    (μC μM) c = ∑' m, (μM m : ENNReal) * (μC_M m c) := by
+  -- Step 1: Unfold all definitions to get to the fundamental sums.
+  simp [μC, μMK, μC_M, PMF.bind_apply, PMF.map_apply]
+  -- Goal is a complex equality of summations.
 
 -- A simpler approach that avoids some of the tsum manipulations
 lemma prob_C_uniform_ennreal {n : Nat} (μM : PMF (Plaintext n)) (c : Ciphertext n) :
@@ -414,8 +416,6 @@ lemma μC_is_uniform {n : Nat} (μM : PMF (Plaintext n)) :
   -- This follows from the bijection between Key n and Ciphertext n
   -- (for any fixed message)
   -- exact card_congr (xorEquiv (List.Vector.replicate n false))
-
--- The simplest approach: just prove what we need for h_total_prob
 
 
 
