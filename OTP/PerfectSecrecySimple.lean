@@ -4,12 +4,11 @@ import OTP.Basic -- definitions of Plaintext, Key, etc.
 -- OTP.Basic already imports Mathlib.Data.Vector.Basic (for Inhabited/Nonempty)
 -- import Mathlib.Probability.ProductMeasure
 import Mathlib.Probability.ProbabilityMassFunction.Constructions -- for PMF.uniformOfFintype
--- import Mathlib.Data.Vector.Basic
--- import Mathlib.Analysis.SpecialFunctions.Pow.Asymptotics
--- import Mathlib.Data.Fintype.Vector -- Provides Fintype for List.Vector
+import OTP.KeyUniqueness -- definitions of Plaintext, Key, etc.
 
 open OTP -- To use Key, Plaintext, etc. without OTP. prefix
 open List.Vector
+
 -- 2. Ensure Fintype and Nonempty instances are available for:
 --    Ciphertext n, Key n (needed for uniformOfFintype, etc.)
 instance ciphertext_fintype {n : ℕ} : Fintype (Ciphertext n) := by
@@ -38,11 +37,17 @@ noncomputable def μK {n : ℕ} : PMF (Key n) := PMF.uniformOfFintype (Key n)
 
 -- To make our example concrete, we'll define Key n as vectors of booleans.
 -- abbrev Key (n : ℕ) := Vector Bool n
+#check PMF.uniformOfFintype_apply
+#print PMF.uniformOfFinset
+#print PMF.ofFinset
 
 -- Our theorem: The probability of the key [true, false, true] is 1/8.
 example : μK ⟨[true, false, true], rfl⟩ = (1/8 : ENNReal) := by
-    simp [μK, PMF.uniformOfFintype_apply]; rfl
-
+    unfold μK
+    unfold PMF.uniformOfFintype
+    unfold PMF.uniformOfFinset
+    simp [PMF.uniformOfFintype_apply]
+    rfl
 
 /-!
 ### Part 2: Deconstructing `bind` and `pure`
@@ -191,6 +196,7 @@ lemma map_uniformOfFintype_equiv
 
 -- Theorem: For any message m, the distribution of ciphertexts is uniform.
 -- This is a key lemma for proving the perfect secrecy of the one-time pad.
+-- P(C = c | M = m) = P(C = c)
 theorem otp_perfect_secrecy_lemma {n : ℕ} :
     ∀ (m : Plaintext n), μC_M m = PMF.uniformOfFintype (Ciphertext n) := by
   intro m
