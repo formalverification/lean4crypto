@@ -4,7 +4,11 @@ import Mathlib.Analysis.SpecialFunctions.Pow.Asymptotics
 import Mathlib.Probability.Distributions.Uniform -- for uniformOfFintype
 import Mathlib.Data.Fintype.Vector -- Provides Fintype for List.Vector
 import OTP.Basic -- definitions of Plaintext, Key, etc.
-import OTP.Probability -- definitions of Plaintext, Key, etc.
+import OTP.KeyUniqueness
+import OTP.PerfectSecrecy -- definitions of μK, μC_M, etc.
+import OTP.Distributions -- definitions of μK, μC_M, etc.
+
+-- import OTP.KeyUniqueness -- definitions of Plaintext, Key, etc.
 -- OTP.Basic already imports Mathlib.Data.Vector.Basic (for Inhabited/Nonempty)
 
 open OTP -- To use Key, Plaintext, etc. without OTP. prefix
