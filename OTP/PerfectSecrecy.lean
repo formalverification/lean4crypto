@@ -6,7 +6,7 @@ import OTP.Distributions
 open Classical -- needed for division and ENNReal properties
 open Fintype
 
-/-! ## 1.  Mapping a uniform PMF through a bijection stays uniform -------------/
+/-! ## 1.  Mapping a uniform PMF through a bijection is uniform -/
 lemma map_uniformOfFintype_equiv
     {α β : Type*} [Fintype α] [Fintype β] [DecidableEq β] [Nonempty α] [Nonempty β]
     (e : α ≃ β) :

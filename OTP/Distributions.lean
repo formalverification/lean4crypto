@@ -20,7 +20,7 @@ noncomputable def μK {n : ℕ} : PMF (Key n) := PMF.uniformOfFintype (Key n)
 -- `card (List.Vector Bool n) = (card Bool) ^ n = 2 ^ n`.
 -- So, (μK k) should be (1 / (2^n : ℝ≥0)). (NNReal for probabilities)
 #check μK (n := 3) -- PMF (Key 3)
-#check μK (n := 3) ⟨[true, false, true], by decide⟩ -- PMF (Key 3)
+#check μK (n := 3) ⟨[true, false, true], rfl⟩
 
 -- This is a PMF with probabilities 1/8 for each key
 
