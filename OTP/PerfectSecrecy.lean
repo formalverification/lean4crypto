@@ -26,12 +26,44 @@ Files in this series:
 
 -/
 
+/-
+### A quick note about coercions
+
+Coercion is a mechanism to convert a term of one type to another to prevent a type error.
+
+For instance, given `n : ℕ` and a function that expects an integer `f (x : ℤ)`, you can
+explicitly write `f ↑n` to show the coercion from `ℕ` to `ℤ`.
+
+As far as I can tell, `↑a` signifies coercion of "standard" types, while `⇑e` signifies
+coercion of more complicated types.
+
+To type the coercion symbol in the VSCode editor with the Lean4 extension,
+
+* For `↑`, type `\u` or `\uparrow` followed by a space or tab.
+
+* For `⇑`, type `\u=` or `\Uparrow` followed by a space or tab.
+
+You can discover all available Unicode symbol abbreviations within VSCode by
+opening the Command Palette (`Ctrl+Shift+P` or `Cmd+Shift+P` on Mac) and
+searching for "**Lean 4: Show Unicode Input Abbreviations**".
+-/
+
 open Classical -- needed for division and ENNReal properties
 open Fintype
 
-/-! ## 1.  Mapping a uniform PMF through a bijection is uniform -/
+variable (a : NNReal) (b : ENNReal)
+#check a = b -- ↑ coerces a to ENNReal
+
+variable (e : NNReal ≃ ENNReal)
+#check ⇑e -- ⇑e : NNReal → ENNReal
+
+
+/-! ## LEMMA 1.  Mapping a uniform PMF through a bijection is uniform -/
+
 lemma map_uniformOfFintype_equiv
-    {α β : Type*} [Fintype α] [Fintype β] [DecidableEq β] [Nonempty α] [Nonempty β]
+    -- {α β : Type*}
+    [Fintype α] [Nonempty α]
+    [Fintype β] [DecidableEq β] [Nonempty β]
     (e : α ≃ β) :
     PMF.map e (PMF.uniformOfFintype α) = PMF.uniformOfFintype β := by
   -- Prove equality of PMFs by showing they assign the same probability to each element
@@ -40,9 +72,10 @@ lemma map_uniformOfFintype_equiv
 
   -- Step 1: Simplify the LHS using PMF.map_apply
   rw [PMF.map_apply]
-  -- This gives us: ∑' (a : α), if b = e a then (uniformOfFintype α) a else 0
+  -- Goal: ∑' (a : α), if b = e a then (uniformOfFintype α) a else 0
+  --         = (PMF.uniformOfFintype β) b
 
-  -- Step 2: Simplify the uniform distribution on α
+  -- Step 2: Apply definition of uniform distribution to both sides
   simp only [PMF.uniformOfFintype_apply]
   -- Goal: ∑' (a : α), if b = e a then (↑(card α))⁻¹ else 0 = (↑(card β))⁻¹
 
@@ -50,23 +83,25 @@ lemma map_uniformOfFintype_equiv
   -- We can rewrite this as a sum over the singleton {e.symm b}
   have h_equiv : (∑' (a : α), if b = e a then (↑(card α : ENNReal))⁻¹ else 0) =
                  (∑' (a : α), if a = e.symm b then (↑(card α))⁻¹ else 0) := by
-    congr 1
+    congr
     ext a
-    -- Show: (if b = e a then (↑(card α))⁻¹ else 0) = (if a = e.symm b then (↑(card α))⁻¹ else 0)
+    -- Goal: (if b = e a then (↑(card α))⁻¹ else 0) = (if a = e.symm b then (↑(card α))⁻¹ else 0)
     by_cases h : b = e a
     · -- Case: b = e a
-      rw [if_pos h, if_pos]
-      -- Need to show a = e.symm b
-      rw [←Equiv.symm_apply_apply e a]
-      rw [h]
+      rw [if_pos h]
+      have h': a = e.symm b := by
+        rw [←Equiv.symm_apply_apply e a]
+        rw [h]
+      rw [if_pos h']
     · -- Case: b ≠ e a
-      rw [if_neg h, if_neg]
-      -- Need to show a ≠ e.symm b
-      intro contra
-      subst contra
-      rw [Equiv.apply_symm_apply e] at h
-      apply h
-      rfl
+      rw [if_neg h]
+      have h' : a ≠ e.symm b := by
+        intro contr
+        subst contr
+        rw [Equiv.apply_symm_apply e] at h
+        apply h
+        rfl
+      rw [if_neg h']
 
   -- Step 4: Apply the equivalence and simplify
   rw [h_equiv]
@@ -79,36 +114,22 @@ lemma map_uniformOfFintype_equiv
 
 
 
-/-! ## LEMMA 1.  The ciphertext-given-message distribution is uniform -/
+/-! ## LEMMA 2.  The ciphertext-given-message distribution is uniform -/
 
--- 2. Ensure Fintype and Nonempty instances are available for:
---    Ciphertext n, Key n (needed for uniformOfFintype, etc.)
+-- Ensure Fintype and Nonempty instances are available for:
+-- Ciphertext n, Key n (needed for uniformOfFintype)
 instance ciphertext_fintype {n : ℕ} : Fintype (Ciphertext n) := by
   unfold Ciphertext; exact inferInstance
 instance ciphertext_nonempty {n : ℕ} : Nonempty (Ciphertext n) := by
   unfold Ciphertext; exact inferInstance
--- alternatively: exact Nonempty.intro (List.Vector.replicate n default)
 
 lemma C_given_M_eq_inv_card_key {n : ℕ} (m : Plaintext n) (c : Ciphertext n) :
-    (μC_M m) c = 1 / card (Key n) := by
-  -- First, identify `μC_M m` with a uniform PMF via the bijection `xorEquiv m`.
-  have hμ : μC_M m = PMF.uniformOfFintype (Ciphertext n) := by
-    -- `μC_M m` is `map (encrypt m) μK`
-    apply map_uniformOfFintype_equiv (xorEquiv m)
-  -- Now just evaluate the uniform PMF.
-  simpa [hμ, PMF.uniformOfFintype_apply]
-    using card_congr (xorEquiv m)
-
--- Alternative version using the definition of μC_M directly
-lemma C_given_M_eq_inv_card_key_alternative {n : ℕ} (m : Plaintext n) (c : Ciphertext n) :
   (μC_M m) c = 1 / card (Key n) := by
-  -- μC_M m is map (encrypt m) μK
-  -- encrypt m is the toFun of xorEquiv m
-  have h_μC_M_def : μC_M m = PMF.map (xorEquiv m).toFun μK := by
-    simp [μC_M, xorEquiv, encrypt]
-    rfl
-
-  rw [h_μC_M_def]
+  -- `μC_M m = map (encrypt m) μK` and `encrypt m` is the `toFun` of `xorEquiv m`
+  have μC_M_def : μC_M m = PMF.map (xorEquiv m).toFun μK := by
+    rw [μC_M]
+    congr 1
+  rw [μC_M_def]
   -- Now goal is (PMF.map (xorEquiv m).toFun μK) c = 1 / card (Key n)
   -- μK is uniformOfFintype (Key n)
   rw [μK] -- replace μK with its definition
@@ -118,7 +139,7 @@ lemma C_given_M_eq_inv_card_key_alternative {n : ℕ} (m : Plaintext n) (c : Cip
   -- map (xorEquiv m).toFun (uniformOfFintype (Key n)) = uniformOfFintype (Ciphertext n)
   have h_map_equiv : PMF.map (xorEquiv m).toFun (PMF.uniformOfFintype (Key n))
     = PMF.uniformOfFintype (Ciphertext n) := by
-    exact map_uniformOfFintype_equiv (xorEquiv m) -- Assuming this lemma is proven
+    exact map_uniformOfFintype_equiv (xorEquiv m)
   rw [h_map_equiv]
   -- Goal: (uniformOfFintype (Ciphertext n)) c = 1 / card (Key n)
   rw [PMF.uniformOfFintype_apply]
@@ -127,62 +148,47 @@ lemma C_given_M_eq_inv_card_key_alternative {n : ℕ} (m : Plaintext n) (c : Cip
   -- Goal: (card (Ciphertext n))⁻¹ = (card (Key n))⁻¹
   -- This is true if card (Ciphertext n) = card (Key n)
   rw [card_congr (xorEquiv m)] -- Rewrites card (Ciphertext n) to card (Key n) on LHS
-  -- Goal: (card (Key n))⁻¹ = (card (Key n))⁻¹
 
 
--- ENNReal version of the conditional distribution lemma
+/-! ### Example
+    For a 3-bit message and ciphertext, the conditional distribution is uniform:
+   `∀ c, P(C = c | M = m) = 1/8`                                                 -/
+  example (m : Plaintext 3) (c : Ciphertext 3) :
+    (μC_M m) c = 1/8 := by
+    rw [C_given_M_eq_inv_card_key]
+    -- Goal: 1 / ↑(card (Key 3)) = 1 / 8
+    unfold Key
+    rw [card_vector]
+    -- Goal: 1 / ↑(card Bool ^ 3) = 1 / 8
+    simp
+
+
+-- ENNReal version of Lemma 1.
 lemma C_given_M_eq_inv_card_key_ennreal {n : ℕ} (m : Plaintext n) (c : Ciphertext n) :
   (μC_M m) c = (card (Key n) : ENNReal)⁻¹ := by
   -- Use the NNReal version and convert
   rw [C_given_M_eq_inv_card_key m c]
   simp
 
-------------------------------------------------------------------------
 
--- Demo 4: Probability Calculations
--- section ProbabilityDemo
-  -- The probability of any specific 3-bit key is 1/8
-  example : (μK (n := 3)) ⟨[true, false, true], by decide⟩ = 1/8 := by
-    simp [μK, PMF.uniformOfFintype_apply]
-    -- New Goal: ↑(card (Key 3)) = 8
-    unfold Key
-    rw [card_vector]
-    -- New Goal: ↑(card Bool ^ 3) = 8
-    simp
-
-  -- The conditional probability P(C = c | M = m) is also 1/8
-  example (m : Plaintext 3) (c : Ciphertext 3) :
-    (μC_M m) c = 1/8 := by
-    rw [C_given_M_eq_inv_card_key]
-    -- New Goal: 1 / ↑(card (Key 3)) = 1 / 8
-    unfold Key
-    rw [card_vector]
-    -- New Goal: 1 / ↑(card Bool ^ 3) = 1 / 8
-    simp
--- end ProbabilityDemo
---------------------------------------------------------------------
+-- Corollary: The conditional distribution of `C` given `M=m` doesn't depend on `m`.
+theorem conditional_independent_of_message {n : Nat}
+  (m₁ m₂ : Plaintext n) (c : Ciphertext n) :
+  μC_M m₁ c = μC_M m₂ c := by
+  rw [C_given_M_eq_inv_card_key_ennreal, C_given_M_eq_inv_card_key_ennreal]
 
 
-/-! ### LEMMA 2: The overall ciphertext distribution `μC` is also uniform.-----------
-To complete the proof, we also need to show that the overall probability of any
-ciphertext $c$, $P(C=c)$ (which is `(μC μM) c`), is uniform over the ciphertext space.
-That is: `(μC μM) c = 1 / (card (Ciphertext n))`
-And since `card (Key n) = card (Ciphertext n)` (due to `xorEquiv`), this means
-`(μC μM) c` is also equal to `1 / card (Key n)`.
+/-! ## LEMMA 2: The overall ciphertext distribution `μC` is also uniform.-----------
+The probability `P(C = c)` that ciphertext `c` is observed (which is `(μC μM) c`),
+is uniform over the ciphertext space. That is: `(μC μM) c = 1 / (card (Ciphertext n))`
+
+Since `card (Key n) = card (Ciphertext n)` (due to `xorEquiv`), this would imply
+that `(μC μM) c` is also equal `1 / card (Key n)`.
 -/
 
--- Helper lemma: sum over a single point
-lemma tsum_ite_single {α β : Type*} [AddCommMonoid β] [TopologicalSpace β]
-  (a : α) (f : α → β) :
-  (∑' x, if x = a then f x else 0) = f a := by
-  rw [tsum_eq_single a]
-  · simp
-  · intro b hb; simp [hb]
+/-! ## Law of Total Probability for Discrete Distributions in Lean 4
 
-/-!
-# Law of Total Probability for Discrete Distributions in Lean 4
-
-## Background: Probability in Lean/Mathlib
+### REVIEW: Probability in Lean/Mathlib
 
 In Mathlib, discrete probability distributions are represented using the `PMF` (Probability Mass Function) type.
 - `PMF α` represents a probability distribution over a type `α`
@@ -190,14 +196,14 @@ In Mathlib, discrete probability distributions are represented using the `PMF` (
 - Probabilities are represented as `NNReal` (non-negative real numbers) in [0, ∞)
 - When doing arithmetic, we often coerce to `ENNReal` (extended non-negative reals) in [0, ∞]
 
-## Random Variables and Transformations
+### REVIEW: Random Variables and Transformations
 
 In probability theory, if X is a random variable with distribution μX, and Y = f(X) for some function f,
 then the distribution of Y can be computed using:
 - `PMF.map f μX` - the distribution of f(X)
 - `PMF.bind μX g` - for dependent distributions, where g : α → PMF β
 
-## The Law of Total Probability
+### REVIEW: The Law of Total Probability
 
 For random variables X and Y, the law of total probability states:
 P(Y = y) = Σ_x P(Y = y , X = x) = Σ_x P(Y = y | X = x) P(X = x)
@@ -208,26 +214,7 @@ In our case:
 - P(C = c | M = m) is given by μC_M m c
 -/
 
--- First, let's prove a helper lemma about summing over a single point
--- This is a common pattern: when we sum f(x) * (if x = a then 1 else 0) over all x,
--- we get f(a)
-lemma tsum_single_value {α : Type*} (a : α) (f : α → ENNReal) :
-  (∑' x, f x * (if x = a then 1 else 0)) = f a := by
-  -- We use the fact that the sum has only one non-zero term (when x = a)
-  rw [tsum_eq_single a]
-  · simp-- Goal: f a * (if a = a then 1 else 0) = f a
-    -- simp only [if_pos rfl, mul_one]
-  · -- For all b ≠ a, we need to show the term is 0
-    intro b hb
-    simp only [if_neg hb, mul_zero]
-
 -- Another helper: when we sum (if P then v else 0), we get v if P is true for exactly one element
-lemma tsum_ite_eq_single {α : Type*} [DecidableEq α] (a : α) (v : ENNReal) :
-  ∑' x : α, (if x = a then v else 0) = v := by
-  rw [tsum_eq_single a]
-  · simp
-  · intro b hb; simp [hb]
-
 -- A more robust approach that builds up the proof piece by piece
 
 -- Next, let's establish what PMF.bind actually does.
@@ -235,29 +222,17 @@ lemma pmf_bind_expanded {α β : Type*} (p : PMF α) (f : α → PMF β) (b : β
   (p.bind f) b = ∑' a, (p a : ENNReal) * (f a b) := by
   -- This is just PMF.bind_apply
   exact PMF.bind_apply _ _ _
-/-!
-# The Most Basic Statement: P(C = c) = Σ_{m,k} P(C = c ∧ M = m ∧ K = k)
 
-Let's prove this in the most direct way possible.
--/
+/-! ## The Most Basic Statement: P(C = c) = Σ_{m,k} P(C = c ∧ M = m ∧ K = k)  -/
+
+-- Let's prove this in the most direct way possible.
 
 -- The key insight: μC is DEFINED as the distribution you get by:
 -- 1. Sampling (m,k) from μMK
 -- 2. Outputting encrypt m k
 -- So P(C = c) is exactly the sum over all (m,k) where encrypt m k = c
 
-theorem marginal_probability_basic {n : Nat} (μM : PMF (Plaintext n)) (c : Ciphertext n) :
-  (μC μM) c = ∑' (p : Plaintext n × Key n),
-    if encrypt p.1 p.2 = c then ((μMK μM) p : ENNReal) else 0 := by
-  -- This is true by the very definition of μC!
-  unfold μC
-  rw [PMF.bind_apply]
-  simp only [PMF.pure_apply]
-  -- μC c = ∑' p, (μMK μM) p * (if c = encrypt p.1 p.2 then 1 else 0)
-  -- Rearrange: = ∑' p, if c = encrypt p.1 p.2 then (μMK μM) p else 0
-  simp only [mul_ite, mul_one, mul_zero, eq_comm]
-
--- Or even more directly: this is *the definition* of marginal probability!
+-- This is the definition of marginal probability!
 -- By P(C = c) we mean the probability of getting c from the encryption process.
 -- The encryption process: sample m, sample k, output encrypt m k
 -- So P(C = c) = Σ over all ways to get c = Σ_{m,k : encrypt m k = c} P(M=m)P(K=k)
@@ -271,7 +246,8 @@ theorem marginal_probability_direct {n : Nat}
   -- μC = bind μMK (λ (m, k) => pure (encrypt m k))
   unfold μC
   rw [PMF.bind_apply (μMK μM) (λ ⟨m, k⟩ => PMF.pure (encrypt m k)) c]
-  simp
+  simp only [PMF.pure_apply]
+  simp only [mul_ite, mul_one, mul_zero, eq_comm]
 
 -- That's it! The bind_apply lemma tells us exactly this.
 -- PMF.bind_apply says: (p.bind f) y = ∑' x, p x * f x y
@@ -337,8 +313,51 @@ lemma μC_is_uniform {n : Nat} (μM : PMF (Plaintext n)) :
   This means that knowing the ciphertext does not give any information about the plaintext.
   The proof uses the uniformity of the ciphertext distribution and the independence of the key.
 -/
+
+/-! ### Perfect Secrecy: The Clean Version -/
+
+-- The essence of perfect secrecy: P(C = c | M = m) = P(C = c)
+theorem perfect_secrecy_clean {n : Nat} (μM : PMF (Plaintext n))
+  (m : Plaintext n) (c : Ciphertext n) :
+  (μC_M m c : ENNReal) = (μC μM) c := by
+  -- Both sides equal (card (Key n))⁻¹
+  rw [C_given_M_eq_inv_card_key_ennreal, prob_C_uniform_ennreal]
+
+
+-- Interpretation: Observing c tells us nothing about whether m₁ or m₂ was sent
+theorem no_information_leakage {n : Nat} (μM : PMF (Plaintext n))
+  (m : Plaintext n) (c : Ciphertext n)
+  (h_pos : (μC μM) c ≠ 0) :
+  -- P(M = m | C = c) = P(M = m)
+  (μC_M m c * μM m) / (μC μM) c = μM m := by
+  rw [perfect_secrecy_clean]
+  rw [mul_comm]
+  rw [ENNReal.mul_div_cancel_right h_pos]
+  rw [prob_C_uniform_ennreal]           -- Goal: (↑(card (Key n)))⁻¹ ≠ ⊤
+  apply ENNReal.inv_ne_top.mpr          -- Goal: ↑(card (Key n)) ≠ 0
+  simp only [ne_eq, Nat.cast_eq_zero]   -- Goal: ¬(card (Key n) = 0)
+  exact card_ne_zero
+
+-- Summary: both distributions are uniform!
+theorem both_distributions_uniform {n : Nat} (μM : PMF (Plaintext n)) :
+  (∀ m, μC_M m = PMF.uniformOfFintype (Ciphertext n)) ∧
+  (μC μM = PMF.uniformOfFintype (Ciphertext n)) := by
+  constructor
+  · intro m
+    ext c
+    rw [C_given_M_eq_inv_card_key, PMF.uniformOfFintype_apply]
+    simp
+    congr
+
+  · ext c
+    rw [prob_C_uniform_ennreal, PMF.uniformOfFintype_apply]
+    congr 1
+
+
+
+
+/- ## Classical statement of perfect secrecy theorem -/
 theorem perfect_secrecy {n : Nat} (μM : PMF (Plaintext n)) (m₀ : Plaintext n) (c₀ : Ciphertext n) :
-  -- (h_μC_c₀_pos : (μC μM) c₀ > (0 : ENNReal)) : -- Condition now uses ENNReal zero
   (μC_M m₀) c₀ * μM m₀ / (μC μM) c₀  = μM m₀ := by
     -- Note: (μM m₀) on the RHS is originally NNReal from PMF μM.
     -- It might need to be coerced to ENNReal for the final equality if LHS is ENNReal.
@@ -392,48 +411,3 @@ theorem perfect_secrecy {n : Nat} (μM : PMF (Plaintext n)) (m₀ : Plaintext n)
   rw [ENNReal.div_self h_inv_ne_zero]
   simp
   apply h_inv_ne_top
-
-
-/-! ### Perfect Secrecy: The Clean Version -/
-
--- The essence of perfect secrecy: P(C = c | M = m) = P(C = c)
-theorem perfect_secrecy_clean {n : Nat} (μM : PMF (Plaintext n))
-  (m : Plaintext n) (c : Ciphertext n) :
-  (μC_M m c : ENNReal) = (μC μM) c := by
-  -- Both sides equal (card (Key n))⁻¹
-  rw [C_given_M_eq_inv_card_key_ennreal, prob_C_uniform_ennreal]
-
--- Corollary: The conditional distribution doesn't depend on the message
-theorem conditional_independent_of_message {n : Nat}
-  (m₁ m₂ : Plaintext n) (c : Ciphertext n) :
-  (μC_M m₁ c : ENNReal) = μC_M m₂ c := by
-  rw [C_given_M_eq_inv_card_key_ennreal, C_given_M_eq_inv_card_key_ennreal]
-
--- Interpretation: Observing c tells us nothing about whether m₁ or m₂ was sent
-theorem no_information_leakage {n : Nat} (μM : PMF (Plaintext n))
-  (m : Plaintext n) (c : Ciphertext n)
-  (h_pos : (μC μM) c ≠ 0) :
-  -- P(M = m | C = c) = P(M = m)
-  (μC_M m c * μM m) / (μC μM) c = μM m := by
-  rw [perfect_secrecy_clean]
-  rw [mul_comm]
-  rw [ENNReal.mul_div_cancel_right h_pos]
-  rw [prob_C_uniform_ennreal]           -- Goal: (↑(card (Key n)))⁻¹ ≠ ⊤
-  apply ENNReal.inv_ne_top.mpr          -- Goal: ↑(card (Key n)) ≠ 0
-  simp only [ne_eq, Nat.cast_eq_zero]   -- Goal: ¬(card (Key n) = 0)
-  exact card_ne_zero
-
--- Summary: both distributions are uniform!
-theorem both_distributions_uniform {n : Nat} (μM : PMF (Plaintext n)) :
-  (∀ m, μC_M m = PMF.uniformOfFintype (Ciphertext n)) ∧
-  (μC μM = PMF.uniformOfFintype (Ciphertext n)) := by
-  constructor
-  · intro m
-    ext c
-    rw [C_given_M_eq_inv_card_key, PMF.uniformOfFintype_apply]
-    simp
-    congr
-
-  · ext c
-    rw [prob_C_uniform_ennreal, PMF.uniformOfFintype_apply]
-    congr 1

@@ -80,5 +80,22 @@ noncomputable def
 -/
 noncomputable def
   μC_M {n : Nat} (m : Plaintext n) : PMF (Ciphertext n) :=
-    PMF.bind μK (λ k => PMF.pure (encrypt m k))
-    -- or PMF.map (λ k : Key n => encrypt m k) μK
+    PMF.map (λ k : Key n => encrypt m k) μK
+    -- or PMF.bind μK (λ k => PMF.pure (encrypt m k))
+
+
+------------------------------------------------------------------------
+
+-- Demo 4: Probability Calculations
+-- section ProbabilityDemo
+  -- The probability of any specific 3-bit key is 1/8
+  example : (μK (n := 3)) ⟨[true, false, true], by decide⟩ = 1/8 := by
+    simp [μK, PMF.uniformOfFintype_apply]
+    -- New Goal: ↑(card (Key 3)) = 8
+    unfold Key
+    rw [card_vector]
+    -- New Goal: ↑(card Bool ^ 3) = 8
+    simp
+
+-- end ProbabilityDemo
+--------------------------------------------------------------------
