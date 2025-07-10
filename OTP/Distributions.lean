@@ -1,6 +1,28 @@
 import Mathlib.Probability.Distributions.Uniform  -- for uniformOfFintype
 import OTP.Basic                                  -- for Key, Plaintext, etc.
 
+/-! # OTP.Distributions.lean
+
+This file defines the probability distributions related to the one-time pad (OTP) cryptographic scheme.
+It includes:
+
+- Uniform distribution over keys
+- Joint distribution of plaintext and key
+- Ciphertext distribution derived from plaintext and key
+- Conditional distribution of ciphertext given plaintext
+
+Files in this series:
+
+- OTP.Basic: Basic definitions and operations for OTP
+- OTP.KeyUniqueness: Properties of keys in OTP
+- OTP.Distributions: Probability distributions related to OTP
+- OTP.PerfectSecrecy: Properties of perfect secrecy in OTP
+- OTP.Examples: Concrete examples and demos of OTP operations and properties
+- OTP.SimpleSecrecy: Simplified version of OTP.PerfectSecrecy where we assume
+                      the message distribution is uniform.
+-/
+
+
 -- Ensure Fintype and Nonempty instances are available for:
 -- Ciphertext n, Key n (needed for uniformOfFintype, etc.)
 instance key_fintype {n : ℕ} : Fintype (Key n) := by

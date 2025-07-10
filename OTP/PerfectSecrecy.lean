@@ -2,6 +2,29 @@ import OTP.Basic
 import OTP.KeyUniqueness
 import OTP.Distributions
 
+/-! # OTP.PerfectSecrecy.lean
+
+This file proves properties of perfect secrecy in the one-time pad (OTP) cryptographic scheme.
+It includes:
+
+- The definition of perfect secrecy
+- The proof that OTP achieves perfect secrecy
+- The relationship between the key and ciphertext distributions
+- The uniformity of the ciphertext distribution given a message
+- The uniformity of the ciphertext distribution overall
+- The law of total probability for the ciphertext distribution
+
+Files in this series:
+
+- OTP.Basic: Basic definitions and operations for OTP
+- OTP.KeyUniqueness: Properties of keys in OTP
+- OTP.Distributions: Probability distributions related to OTP
+- OTP.PerfectSecrecy: Properties of perfect secrecy in OTP
+- OTP.Examples: Concrete examples and demos of OTP operations and properties
+- OTP.SimpleSecrecy: Simplified version of OTP.PerfectSecrecy where we assume
+                      the message distribution is uniform.
+
+-/
 
 open Classical -- needed for division and ENNReal properties
 open Fintype

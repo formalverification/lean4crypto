@@ -1,4 +1,33 @@
 import OTP.Basic -- definitions of Plaintext, Key, etc.
+
+/-! # OTP.KeyUniqueness.lean
+
+## Key Uniqueness in One-Time Pad (OTP)
+
+This file proves properties of keys in the one-time pad (OTP) encryption scheme
+that are crucial for OTP's perfect secrecy.
+
+These properties include:
+- The involutive nature of the `vec_xor _ k` and `vec_xor m _` operations
+- The uniqueness of keys given a plaintext message and ciphertext
+- The injectivity of encryption with a fixed key
+- The injectivity of encryption of a fixed message
+- The bijection between keys and ciphertexts for a fixed message
+- The existence of a unique key for each ciphertext given a plaintext
+
+Files in this series:
+
+- OTP.Basic: Basic definitions and operations for OTP
+- OTP.KeyUniqueness: Properties of keys in OTP
+- OTP.Distributions: Probability distributions related to OTP
+- OTP.PerfectSecrecy: Properties of perfect secrecy in OTP
+- OTP.Examples: Concrete examples and demos of OTP operations and properties
+- OTP.SimpleSecrecy: Simplified version of OTP.PerfectSecrecy where we assume
+                     the message distribution is uniform.
+
+ -/
+
+
 open List.Vector
 
 /-! ## Properties of vec_xor -/

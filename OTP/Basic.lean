@@ -1,5 +1,32 @@
 import Mathlib.Data.Vector.Basic
 
+/-! # OTP.Basic.lean
+
+This is the first file in a collection of Lean programs about the one-time pad (OTP) cryptographic scheme.
+It defines the basic types and operations needed for OTP, including:
+
+- Types for plaintext, key, and ciphertext
+- Boolean xor operation
+- Pointwise xor operation for boolean vectors
+- Encrypt and decrypt operations
+- Properties of xor and vector xor operations
+- Demos of basic OTP operations and xor properties
+
+Other files in the collection prove properties like key uniqueness and perfect secrecy.
+
+Files in this series:
+
+- OTP.Basic: Basic definitions and operations for OTP
+- OTP.KeyUniqueness: Properties of keys in OTP
+- OTP.Distributions: Probability distributions related to OTP
+- OTP.PerfectSecrecy: Properties of perfect secrecy in OTP
+- OTP.Examples: Concrete examples and demos of OTP operations and properties
+- OTP.SimpleSecrecy: Simplified version of OTP.PerfectSecrecy where we assume
+                     the message distribution is uniform.
+
+
+-/
+
 /-! # Types for the one-time pad (OTP) and properties of xor -/
 
 
