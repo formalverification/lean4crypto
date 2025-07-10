@@ -1,81 +1,16 @@
--- 1. Mathlib Imports for Probability
-import Mathlib.Probability.ProbabilityMassFunction.Constructions -- for PMF.uniformOfFintype
-import Mathlib.Analysis.SpecialFunctions.Pow.Asymptotics
-import Mathlib.Probability.Distributions.Uniform -- for uniformOfFintype
-import Mathlib.Data.Fintype.Vector -- Provides Fintype for List.Vector
-import OTP.Basic -- definitions of Plaintext, Key, etc.
--- OTP.Basic already imports Mathlib.Data.Vector.Basic (for Inhabited/Nonempty)
+import OTP.Basic
 import OTP.KeyUniqueness
-import OTP.Distributions -- definitions of μK, μC_M, etc.
-
-open OTP -- To use Key, Plaintext, etc. without OTP. prefix
-open PMF -- To use uniformOfFintype without PMF. prefix
+import OTP.Distributions
 
 
-
-open Classical -- Needed for, e.g., division/NNReal properties
-open List.Vector
+open Classical -- needed for division and ENNReal properties
 open Fintype
--- open scoped NNReal BigOperators
 
-/-! ### 1.  Xor is a bijection -------------------------------------------------/
-
-/--  For a fixed message `m`, “xor with `m`” is a bijection on Boolean vectors. -/
-def xorEquiv {n : ℕ} (m : Plaintext n) : Key n ≃ Ciphertext n where
-  toFun   := encrypt m  -- := λ k => encrypt m k
-  invFun  := vec_xor m  -- := λ c => vec_xor m c
-  left_inv := by
-    intro k
-    unfold encrypt
-    rw [key_uniqueness m (vec_xor m k)]
-
-  right_inv := by
-    intro c
-    unfold encrypt
-    rw [key_uniqueness m (vec_xor m c)]
-
-
--------------------------------------------------------------------------
-
--- Demo 3: Bijection Property
-section BijectionDemo
-  -- Show that for every ciphertext, there's a unique key
-  example {n : Nat} (m : Plaintext n) (c : Ciphertext n) :
-    ∃! k : Key n, encrypt m k = c := by
-    use vec_xor m c   -- what to use as existence witness
-    constructor
-    · -- Prove map₂ xor m (map₂ xor m c) = c by extensionality and xor properties
-      apply ext
-      intro i
-      simp [encrypt, vec_xor, get_map₂]
-    · -- Uniqueness
-      intro k hk
-      exact (key_uniqueness m k c).mp hk
-
-  -- Show that encryption with a fixed message is injective
-  example {n : Nat} (m : Plaintext n) (k₁ k₂ : Key n)
-    (h : encrypt m k₁ = encrypt m k₂) : k₁ = k₂ := by
-    -- Goal: k₁ = k₂
-    have h₁ : k₁ = vec_xor m (encrypt m k₁) := by
-      unfold encrypt
-      rw [(key_uniqueness m k₁ (vec_xor m k₁)).symm]
-    have h₂ : k₂ = vec_xor m (encrypt m k₂) := by
-      unfold encrypt
-      rw [(key_uniqueness m k₂ (vec_xor m k₂)).symm]
-    rw [h₁, h₂, h]
-
-/-  Recall:
-    theorem key_uniqueness {n : Nat} (m : Plaintext n) (k : Key n) (c : Ciphertext n) :
-      vec_xor m k = c ↔ k = vec_xor m c  -/
-end BijectionDemo
----------------------------------------------------------------------------
-
-
-/-! ### 2.  Mapping a uniform PMF through a bijection stays uniform -------------/
+/-! ## 1.  Mapping a uniform PMF through a bijection stays uniform -------------/
 lemma map_uniformOfFintype_equiv
     {α β : Type*} [Fintype α] [Fintype β] [DecidableEq β] [Nonempty α] [Nonempty β]
     (e : α ≃ β) :
-    PMF.map e (uniformOfFintype α) = uniformOfFintype β := by
+    PMF.map e (PMF.uniformOfFintype α) = PMF.uniformOfFintype β := by
   -- Prove equality of PMFs by showing they assign the same probability to each element
   ext b
   -- Goal: (PMF.map e (uniformOfFintype α)) b = (uniformOfFintype β) b
@@ -85,7 +20,7 @@ lemma map_uniformOfFintype_equiv
   -- This gives us: ∑' (a : α), if b = e a then (uniformOfFintype α) a else 0
 
   -- Step 2: Simplify the uniform distribution on α
-  simp only [uniformOfFintype_apply]
+  simp only [PMF.uniformOfFintype_apply]
   -- Goal: ∑' (a : α), if b = e a then (↑(card α))⁻¹ else 0 = (↑(card β))⁻¹
 
   -- Step 3: The sum has exactly one non-zero term when a = e.symm b
@@ -121,8 +56,7 @@ lemma map_uniformOfFintype_equiv
 
 
 
-/-! ### LEMMA 1.  The ciphertext-given-message distribution is uniform ---------------/
-
+/-! ## LEMMA 1.  The ciphertext-given-message distribution is uniform -/
 
 -- 2. Ensure Fintype and Nonempty instances are available for:
 --    Ciphertext n, Key n (needed for uniformOfFintype, etc.)
@@ -135,11 +69,11 @@ instance ciphertext_nonempty {n : ℕ} : Nonempty (Ciphertext n) := by
 lemma C_given_M_eq_inv_card_key {n : ℕ} (m : Plaintext n) (c : Ciphertext n) :
     (μC_M m) c = 1 / card (Key n) := by
   -- First, identify `μC_M m` with a uniform PMF via the bijection `xorEquiv m`.
-  have hμ : μC_M m = uniformOfFintype (Ciphertext n) := by
+  have hμ : μC_M m = PMF.uniformOfFintype (Ciphertext n) := by
     -- `μC_M m` is `map (encrypt m) μK`
     apply map_uniformOfFintype_equiv (xorEquiv m)
   -- Now just evaluate the uniform PMF.
-  simpa [hμ, uniformOfFintype_apply]
+  simpa [hμ, PMF.uniformOfFintype_apply]
     using card_congr (xorEquiv m)
 
 -- Alternative version using the definition of μC_M directly
@@ -149,7 +83,6 @@ lemma C_given_M_eq_inv_card_key_alternative {n : ℕ} (m : Plaintext n) (c : Cip
   -- encrypt m is the toFun of xorEquiv m
   have h_μC_M_def : μC_M m = PMF.map (xorEquiv m).toFun μK := by
     simp [μC_M, xorEquiv, encrypt]
-    unfold encrypt
     rfl
 
   rw [h_μC_M_def]
@@ -160,11 +93,12 @@ lemma C_given_M_eq_inv_card_key_alternative {n : ℕ} (m : Plaintext n) (c : Cip
 
   -- Apply map_uniformOfFintype_equiv:
   -- map (xorEquiv m).toFun (uniformOfFintype (Key n)) = uniformOfFintype (Ciphertext n)
-  have h_map_equiv : PMF.map (xorEquiv m).toFun (uniformOfFintype (Key n)) = uniformOfFintype (Ciphertext n) := by
+  have h_map_equiv : PMF.map (xorEquiv m).toFun (PMF.uniformOfFintype (Key n))
+    = PMF.uniformOfFintype (Ciphertext n) := by
     exact map_uniformOfFintype_equiv (xorEquiv m) -- Assuming this lemma is proven
   rw [h_map_equiv]
   -- Goal: (uniformOfFintype (Ciphertext n)) c = 1 / card (Key n)
-  rw [uniformOfFintype_apply]
+  rw [PMF.uniformOfFintype_apply]
   -- Goal: (card (Ciphertext n) : NNReal)⁻¹ = 1 / card (Key n)
   rw [one_div] -- RHS becomes (card (Key n))⁻¹
   -- Goal: (card (Ciphertext n))⁻¹ = (card (Key n))⁻¹
@@ -180,16 +114,13 @@ lemma C_given_M_eq_inv_card_key_ennreal {n : ℕ} (m : Plaintext n) (c : Ciphert
   rw [C_given_M_eq_inv_card_key m c]
   simp
 
-
-
-
 ------------------------------------------------------------------------
 
 -- Demo 4: Probability Calculations
 -- section ProbabilityDemo
   -- The probability of any specific 3-bit key is 1/8
   example : (μK (n := 3)) ⟨[true, false, true], by decide⟩ = 1/8 := by
-    simp [μK, uniformOfFintype_apply]
+    simp [μK, PMF.uniformOfFintype_apply]
     -- New Goal: ↑(card (Key 3)) = 8
     unfold Key
     rw [card_vector]
@@ -276,7 +207,7 @@ lemma tsum_ite_eq_single {α : Type*} [DecidableEq α] (a : α) (v : ENNReal) :
 
 -- A more robust approach that builds up the proof piece by piece
 
--- First, let's establish what PMF.bind actually does
+-- Next, let's establish what PMF.bind actually does.
 lemma pmf_bind_expanded {α β : Type*} (p : PMF α) (f : α → PMF β) (b : β) :
   (p.bind f) b = ∑' a, (p a : ENNReal) * (f a b) := by
   -- This is just PMF.bind_apply
@@ -303,33 +234,33 @@ theorem marginal_probability_basic {n : Nat} (μM : PMF (Plaintext n)) (c : Ciph
   -- Rearrange: = ∑' p, if c = encrypt p.1 p.2 then (μMK μM) p else 0
   simp only [mul_ite, mul_one, mul_zero, eq_comm]
 
--- Or even more directly: this IS the definition of marginal probability!
--- When we define P(C = c), we mean: the probability that when we run the
--- encryption process, we get c as output.
--- The encryption process is: sample m, sample k, output encrypt m k
+-- Or even more directly: this is *the definition* of marginal probability!
+-- By P(C = c) we mean the probability of getting c from the encryption process.
+-- The encryption process: sample m, sample k, output encrypt m k
 -- So P(C = c) = Σ over all ways to get c = Σ_{m,k : encrypt m k = c} P(M=m)P(K=k)
 
 -- The most direct possible statement
-theorem marginal_probability_direct {n : Nat} (μM : PMF (Plaintext n)) (c : Ciphertext n) :
+theorem marginal_probability_direct {n : Nat}
+  (μM : PMF (Plaintext n)) (c : Ciphertext n) :
   (μC μM) c = ∑' (mk : Plaintext n × Key n),
     if c = encrypt mk.1 mk.2 then ((μMK μM) mk : ENNReal) else 0 := by
-  -- This is LITERALLY the definition of μC!
-  -- μC = bind μMK (fun mk => pure (encrypt mk.1 mk.2))
+  -- This is literally the definition of μC!
+  -- μC = bind μMK (λ (m, k) => pure (encrypt m k))
   unfold μC
-  rw [PMF.bind_apply (μMK μM) (fun mk => PMF.pure (encrypt mk.1 mk.2)) c]
+  rw [PMF.bind_apply (μMK μM) (λ ⟨m, k⟩ => PMF.pure (encrypt m k)) c]
   simp
 
 -- That's it! The bind_apply lemma tells us exactly this.
 -- PMF.bind_apply says: (p.bind f) y = ∑' x, p x * f x y
 -- In our case:
 -- - p is μMK μM
--- - f is (fun mk => pure (encrypt mk.1 mk.2))
+-- - f is λ (m, k) => pure (encrypt m k)
 -- - y is c
 -- And (pure a) b = if b = a then 1 else 0
 
 -- Interpretation:
---   By definition, P(C = c) equals the sum of P(M = m, K = k) over all (m,k)
---   such that encrypt m k = c. This is exactly what μC computes."
+--   By definition, P(C = c) equals the sum of P(M = m, K = k) over all
+--   (m, k) such that encrypt m k = c. This is exactly what μC computes.
 
 /-- The law of total probability for PMFs:
     P(Y = y) = Σ_x P(X = x) * P(Y = y | X = x) -/
@@ -365,10 +296,10 @@ lemma prob_C_uniform_ennreal {n : Nat} (μM : PMF (Plaintext n)) (c : Ciphertext
 
 -- Even simpler: directly show that μC is uniform
 lemma μC_is_uniform {n : Nat} (μM : PMF (Plaintext n)) :
-  μC μM = uniformOfFintype (Ciphertext n) := by
+  μC μM = PMF.uniformOfFintype (Ciphertext n) := by
   -- Two PMFs are equal if they assign the same probability to each element
   ext c
-  rw [prob_C_uniform_ennreal, uniformOfFintype_apply]
+  rw [prob_C_uniform_ennreal, PMF.uniformOfFintype_apply]
   -- Need to show: (card (Key n))⁻¹ = (card (Ciphertext n))⁻¹
   congr 1
   -- This follows from the bijection between Key n and Ciphertext n
@@ -471,15 +402,15 @@ theorem no_information_leakage {n : Nat} (μM : PMF (Plaintext n))
 
 -- Summary: both distributions are uniform!
 theorem both_distributions_uniform {n : Nat} (μM : PMF (Plaintext n)) :
-  (∀ m, μC_M m = uniformOfFintype (Ciphertext n)) ∧
-  (μC μM = uniformOfFintype (Ciphertext n)) := by
+  (∀ m, μC_M m = PMF.uniformOfFintype (Ciphertext n)) ∧
+  (μC μM = PMF.uniformOfFintype (Ciphertext n)) := by
   constructor
   · intro m
     ext c
-    rw [C_given_M_eq_inv_card_key, uniformOfFintype_apply]
+    rw [C_given_M_eq_inv_card_key, PMF.uniformOfFintype_apply]
     simp
     congr
 
   · ext c
-    rw [prob_C_uniform_ennreal, uniformOfFintype_apply]
+    rw [prob_C_uniform_ennreal, PMF.uniformOfFintype_apply]
     congr 1
