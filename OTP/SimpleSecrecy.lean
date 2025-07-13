@@ -6,7 +6,6 @@ import OTP.Basic -- definitions of Plaintext, Key, etc.
 import Mathlib.Probability.ProbabilityMassFunction.Constructions -- for PMF.uniformOfFintype
 import OTP.KeyUniqueness -- definitions of Plaintext, Key, etc.
 
-open OTP -- To use Key, Plaintext, etc. without OTP. prefix
 open List.Vector
 
 -- 2. Ensure Fintype and Nonempty instances are available for:
@@ -127,20 +126,6 @@ lemma encrypt_bijective {n : ℕ} (m : Plaintext n) : Function.Bijective (encryp
 noncomputable def encrypt_equiv {n : ℕ} (m : Plaintext n) : Key n ≃ Ciphertext n :=
   Equiv.ofBijective (encrypt m) (encrypt_bijective m)
 
-
-/--  For a fixed message `m`, “xor with `m`” is a bijection on Boolean vectors. -/
-def xorEquiv {n : ℕ} (m : Plaintext n) : Key n ≃ Ciphertext n where
-  toFun   := encrypt m  -- := λ k => encrypt m k
-  invFun  := vec_xor m  -- := λ c => vec_xor m c
-  left_inv := by
-    intro k
-    unfold encrypt
-    rw [key_uniqueness m (vec_xor m k)]
-
-  right_inv := by
-    intro c
-    unfold encrypt
-    rw [key_uniqueness m (vec_xor m c)]
 
 
 open Fintype

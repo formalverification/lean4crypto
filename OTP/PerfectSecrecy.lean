@@ -25,10 +25,10 @@ Files in this series:
                       the message distribution is uniform.
 
 -/
+open Classical -- needed for division and ENNReal properties
+open Fintype
 
-/-
-### A quick note about coercions
-
+/-! ### A brief note about coercions
 Coercion is a mechanism to convert a term of one type to another to prevent a type error.
 
 For instance, given `n : ℕ` and a function that expects an integer `f (x : ℤ)`, you can
@@ -47,26 +47,58 @@ You can discover all available Unicode symbol abbreviations within VSCode by
 opening the Command Palette (`Ctrl+Shift+P` or `Cmd+Shift+P` on Mac) and
 searching for "**Lean 4: Show Unicode Input Abbreviations**".
 -/
-
-open Classical -- needed for division and ENNReal properties
-open Fintype
-
 variable (a : NNReal) (b : ENNReal)
 #check a = b -- ↑ coerces a to ENNReal
 
 variable (e : NNReal ≃ ENNReal)
 #check ⇑e -- ⇑e : NNReal → ENNReal
 
+/-! ### A brief note about universe levels
+Types form a hierarchy that is parameterized by universe levels.  The assertion
+that `α` is a type at universe level `ℓ` is expressed as `α : Type ℓ`. Fortunately,
+in most cases we can elide this technicality by declaring our types with the
+special Lean syntax `α : Type*`, which tells Lean to select a fresh universe level
+for `α` and make that level an implicit parameter.
+-/
 
-/-! ## LEMMA 1.  Mapping a uniform PMF through a bijection is uniform -/
+
+/-! ## LEMMA 1.  Mapping a uniform PMF through a bijection is uniform
+This lemma involves proving that two PMFs are equal.  How is this done?
+Let's look at the definition of `PMF` in
+`mathlib/Mathlib/Probability/ProbabilityMassFunction/Basic.lean`.
+
+```lean
+definition of PMF:
+
+def PMF.{u} (α : Type u) : Type u :=
+  { f : α → ℝ≥0∞ // HasSum f 1 }
+
+namespace PMF
+
+instance instFunLike : FunLike (PMF α) α ℝ≥0∞ where
+  coe p a := p.1 a
+  coe_injective' _ _ h := Subtype.eq h
+
+@[ext]
+protected theorem ext {p q : PMF α} (h : ∀ x, p x = q x) : p = q :=
+  DFunLike.ext p q h
+```
+
+There is an instance of `FunLike` for `PMF α`, which means that we
+can treat a PMF as a function from `α` to `ℝ≥0∞`.  This is crucial for
+proving that two PMFs are equal: we can show that they assign the same
+probability to each possible value of the random variable. Indeed, the
+`ext` theorem for `PMF` is essentially function extensionality for PMFs.
+-/
 
 lemma map_uniformOfFintype_equiv
-    -- {α β : Type*}
-    [Fintype α] [Nonempty α]
-    [Fintype β] [DecidableEq β] [Nonempty β]
+    {α : Type*} [Fintype α] [Nonempty α]
+    {β : Type*} [Fintype β] [Nonempty β]
     (e : α ≃ β) :
     PMF.map e (PMF.uniformOfFintype α) = PMF.uniformOfFintype β := by
-  -- Prove equality of PMFs by showing they assign the same probability to each element
+  -- Equality of PMFs is proved by showing that they assign the same probability
+  -- to each possible value of the random variable.
+
   ext b
   -- Goal: (PMF.map e (uniformOfFintype α)) b = (uniformOfFintype β) b
 
@@ -247,7 +279,7 @@ theorem marginal_probability_direct {n : Nat}
   unfold μC
   rw [PMF.bind_apply (μMK μM) (λ ⟨m, k⟩ => PMF.pure (encrypt m k)) c]
   simp only [PMF.pure_apply]
-  simp only [mul_ite, mul_one, mul_zero, eq_comm]
+  simp only [mul_ite, mul_one, mul_zero]
 
 -- That's it! The bind_apply lemma tells us exactly this.
 -- PMF.bind_apply says: (p.bind f) y = ∑' x, p x * f x y
