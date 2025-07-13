@@ -1,0 +1,47 @@
+name: Build and Deploy Docs
+
+    # Run this workflow on pushes to the main branch
+    on:
+      push:
+        branches: [ "main" ]
+
+    # Allow the job to write to the gh-pages branch
+    permissions:
+      contents: write
+
+    jobs:
+      build-and-deploy:
+        runs-on: ubuntu-latest
+        steps:
+          # 1. Checkout the repository code
+          - name: Checkout repository
+            uses: actions/checkout@v4
+
+          # 2. Install Lean and Lake using the version specified in your `lean-toolchain` file
+          - name: Set up Lean
+            uses: leanprover/setup-lean@v1
+            with:
+              toolchain: 'lean-toolchain'
+
+          # 3. Cache Lake dependencies for faster builds
+          - name: Cache Lake dependencies
+            uses: actions/cache@v4
+            with:
+              path: |
+                docbuild/.lake
+              key: ${{ runner.os }}-lake-${{ hashFiles('docbuild/lake-manifest.json') }}
+              restore-keys: |
+                ${{ runner.os }}-lake-
+
+          # 4. Build the documentation
+          - name: Build documentation
+            run: |
+              cd docbuild
+              lake build OTP:docs
+
+          # 5. Deploy the generated HTML to the `gh-pages` branch
+          - name: Deploy to GitHub Pages
+            uses: peaceiris/actions-gh-pages@v4
+            with:
+              github_token: ${{ secrets.GITHUB_TOKEN }}
+              publish_dir: ./docbuild/.lake/build/doc
