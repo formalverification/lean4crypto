@@ -1,0 +1,25 @@
+{"synthetic": false,
+ "outputs": null,
+ "log":
+ [{"message": "Documentation indexing", "level": "info"},
+  {"message":
+   ".> /home/runner/work/lean4crypto/lean4crypto/.lake/packages/doc-gen4/.lake/build/bin/doc-gen4 index --build /home/runner/work/lean4crypto/lean4crypto/docbuild/.lake/build",
+   "level": "trace"}],
+ "inputs":
+ [["/home/runner/work/lean4crypto/lean4crypto/.lake/packages/doc-gen4/.lake/build/bin/doc-gen4",
+   "2517647361747078457"],
+  ["<nil>", "4147042607551581956"],
+  ["<collection>",
+   [["/home/runner/work/lean4crypto/lean4crypto/docbuild/.lake/build/doc/OTP/Basic.html",
+     "9637935419387127510"],
+    ["/home/runner/work/lean4crypto/lean4crypto/docbuild/.lake/build/doc/OTP/KeyUniqueness.html",
+     "4210777282416028737"],
+    ["/home/runner/work/lean4crypto/lean4crypto/docbuild/.lake/build/doc/OTP/Distributions.html",
+     "13151778743243553179"],
+    ["/home/runner/work/lean4crypto/lean4crypto/docbuild/.lake/build/doc/OTP/PerfectSecrecy.html",
+     "17959118429313737038"],
+    ["/home/runner/work/lean4crypto/lean4crypto/docbuild/.lake/build/doc/OTP/Examples.html",
+     "15563495072890123029"],
+    ["/home/runner/work/lean4crypto/lean4crypto/docbuild/.lake/build/doc/OTP.html",
+     "15297695807344407005"]]]],
+ "depHash": "838092112257083144"}
