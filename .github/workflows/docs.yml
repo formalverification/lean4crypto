@@ -19,7 +19,7 @@ jobs:
 
       # 2. Install Lean and Lake
       - name: Set up Lean
-        uses: leanprover/setup-lean@v1
+        uses: leanprover/lean-action@v1
         with:
           toolchain: 'lean-toolchain'
 
